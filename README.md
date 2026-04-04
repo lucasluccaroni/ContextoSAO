@@ -45,6 +45,20 @@ La máquina de caja corre macOS. Reemplaza un Excel artesanal.
 > El frame original de Comandas queda como referencia hasta que se confirme
 > que la variante con historial está lista. Borrar el viejo manualmente.
 
+### Convención visual del topnav
+ 
+Todos los frames comparten el mismo topnav horizontal de 56px de alto:
+- Izquierda: logo placeholder + "SAO Bar"
+- Centro: links de navegación — Productos / Comandas / Caja / Cierre
+- Derecha: fecha (ej. "vie 29/03")
+- Link activo: texto en color primario + línea de subrayado azul debajo
+- Link inactivo: texto secundario, sin subrayado
+ 
+> ⚠️ El frame Comandas fue creado inicialmente con un sidebar vertical
+> izquierdo (inconsistente). Se corrigió manualmente eliminando el sidebar,
+> corriendo el contenido 64px a la izquierda, y agregando el topnav
+> horizontal. Todos los frames nuevos deben usar este patrón desde el inicio.
+
 ---
 
 ## Modelo de datos Firestore
@@ -179,6 +193,13 @@ haya múltiples operaciones simultáneas.
 - Siempre se leen exactamente 10 documentos — escala a eventos grandes sin cambiar nada
 - Listener en tiempo real con `onSnapshot` — cuando se envía una comanda
   exitosamente aparece sola al tope sin recargar
+
+> **Razonamiento de ubicación:** no es un módulo separado porque los casos
+> de uso reales (detectar error en una comanda, verificar un cobro) son poco
+> frecuentes en un bar chico. Tenerlo visible en el panel de Comandas permite
+> consultarlo sin cambiar de pantalla mientras se arma el siguiente pedido.
+> El costo en Firestore es despreciable: ~50-80 lecturas por noche, muy por
+> debajo del tier gratuito de 50.000 lecturas/día.
 
 ---
 
