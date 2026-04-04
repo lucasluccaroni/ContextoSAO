@@ -337,6 +337,15 @@ donde hay stock que validar.
 
 ---
 
+## Volumen de negocio real (referencia del Excel)
+
+Datos extraídos del Excel original del cliente (Enero–Febrero 2026):
+- Recaudación por noche: entre $700.000 y $2.600.000 ARS
+- El viernes 21/02 fue el pico registrado: ~$2.617.000 total
+
+Útil como referencia para decisiones de escalabilidad y para contextualizar
+el valor del sistema frente al cliente.
+
 ## Notas de sesión
 
 - El conector de GitHub en claude.ai web no está disponible como conector
