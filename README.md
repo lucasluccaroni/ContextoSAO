@@ -59,6 +59,51 @@ Todos los frames comparten el mismo topnav horizontal de 56px de alto:
 > corriendo el contenido 64px a la izquierda, y agregando el topnav
 > horizontal. Todos los frames nuevos deben usar este patrón desde el inicio.
 
+### Logo placeholder en topbar
+
+El topbar incluye un rectángulo punteado de 28×28px como placeholder del
+logo del cliente. Incluye una anotación "← logo .png" visible en el diseño.
+Al implementar, se reemplaza con un `<img src={logo}>` en el componente
+del topbar. El cliente aún no entregó el PNG.
+
+### Layout del ABM de Productos
+
+Patrón master-detail horizontal:
+- **Panel izquierdo (tabla):** ancho dinámico, ocupa el espacio restante
+- **Divisor:** 1px vertical, color `#2e2e2e`
+- **Panel derecho (formulario):** ancho fijo 300px, fondo ligeramente más
+  oscuro que el panel principal
+- **Modal "Nuevo producto":** overlay centrado sobre el frame completo,
+  independiente del panel lateral. Se abre al hacer click en "+ Nuevo
+  producto". Contiene los mismos campos que el formulario lateral más
+  el comportamiento de stock inicial descrito abajo.
+
+> El prototipo ON_CLICK botón → overlay está pendiente de conectar
+> manualmente en Figma (Prototype tab → arrastrar trigger al frame modal,
+> configurar como Open overlay con animación Dissolve).
+
+### Comportamiento visual de productos inactivos
+
+En la vista **"Todos"** de la tabla, los productos inactivos se muestran
+con **opacidad 40%** — visibles pero claramente diferenciados de los activos.
+No se ocultan.
+
+La pestaña de filtro **"Inactivos (N)"** muestra el conteo dinámico entre
+paréntesis y tiene estilo visual apagado (color y borde más tenues que las
+demás pestañas) para distinguirla semánticamente.
+
+### Detalle visual del campo stock actual
+
+En el formulario (panel lateral y modal), el campo "Stock actual" tiene
+tratamiento visual diferenciado para dejar claro que es solo lectura:
+- Fondo más oscuro que los inputs editables (`#141414`)
+- Texto en color gris tenue + estilo itálica
+- Hint debajo: `"Solo lectura — se descuenta con cada comanda"`
+
+En el **modal de alta**, el valor del campo muestra el texto:
+`"= stock inicial al crear"` — comunica explícitamente la lógica de
+negocio: al crear un producto, `stock = stockInicial` de forma automática.
+
 ---
 
 ## Modelo de datos Firestore
