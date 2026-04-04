@@ -1,8 +1,3 @@
-# ContextoSAO
-Contexto del proyecto SAO
-
-
-
 # Contexto del Proyecto — SAO Bar
 
 ## Descripción del negocio
@@ -20,7 +15,7 @@ La máquina de caja corre macOS. Reemplaza un Excel artesanal.
 1. **ABM de Productos**
 2. **Comandas** (el más complejo)
 3. **Caja del Día** (pantalla separada, no integrada en Comandas)
-4. **Cierre de Caja + Carga de Gastos**
+4. **Cierre de Caja** (incluye carga de gastos como paso previo)
 
 ---
 
@@ -46,14 +41,14 @@ La máquina de caja corre macOS. Reemplaza un Excel artesanal.
 > que la variante con historial está lista. Borrar el viejo manualmente.
 
 ### Convención visual del topnav
- 
+
 Todos los frames comparten el mismo topnav horizontal de 56px de alto:
 - Izquierda: logo placeholder + "SAO Bar"
 - Centro: links de navegación — Productos / Comandas / Caja / Cierre
 - Derecha: fecha (ej. "vie 29/03")
 - Link activo: texto en color primario + línea de subrayado azul debajo
 - Link inactivo: texto secundario, sin subrayado
- 
+
 > ⚠️ El frame Comandas fue creado inicialmente con un sidebar vertical
 > izquierdo (inconsistente). Se corrigió manualmente eliminando el sidebar,
 > corriendo el contenido 64px a la izquierda, y agregando el topnav
@@ -148,8 +143,8 @@ negocio: al crear un producto, `stock = stockInicial` de forma automática.
   totalEfectivo: number,
   totalMP: number,
   totalGeneral: number,
-  totalGastos: number,
-  gananciaNeta: number,
+  totalGastos: number,          // suma de todos los ítems de gastosDetalle
+  gananciaNeta: number,         // totalGeneral - totalGastos
   ventasPorCategoria: {
     cerveza: number,
     trago: number,
@@ -164,19 +159,23 @@ negocio: al crear un producto, `stock = stockInicial` de forma automática.
       vendidas: number,
       restante: number
     }
-  ]
+  ],
+  gastosDetalle: [              // snapshot de los gastos de la jornada
+    {
+      categoria: string,        // ej: "Bebidas", "DJ Tortu", "Banda en vivo"
+      monto: number
+    }
+  ],
+  gastosIds: [string]           // IDs de los documentos en colección gastos
 }
 ```
 
 ### `gastos/{gastoId}`
 ```js
 {
-  fecha: Timestamp,
-  descripcion: string,
-  monto: number,
-  categoria: string,
-  medioPago: string,
-  comprobante: string
+  fecha: Timestamp,        // serverTimestamp() — automático, no editable
+  categoria: string,       // texto del select — gestionado en Firebase console
+  monto: number
 }
 ```
 
@@ -186,8 +185,9 @@ negocio: al crear un producto, `stock = stockInicial` de forma automática.
 ```
 
 ### Colecciones de solo lectura (se editan por consola Firebase, sin UI)
-- `categorias`: `{ id, nombre, label }`
-- `unidades`: `{ id, nombre, label }`
+- `categorias`: `{ id, nombre, label }` — categorías de productos
+- `categorias_gastos`: `{ id, nombre, label }` — categorías de gastos
+- `unidades`: `{ id, nombre, label }` — unidades de medida de productos
 
 ---
 
@@ -246,6 +246,50 @@ haya múltiples operaciones simultáneas.
 > El costo en Firestore es despreciable: ~50-80 lecturas por noche, muy por
 > debajo del tier gratuito de 50.000 lecturas/día.
 
+### Lógica de negocio — Gastos
+
+Los gastos se cargan el mismo viernes, al momento del cierre de caja.
+No importa cuándo ocurrieron físicamente durante la semana — el operador
+los vuelca todos de una sola vez antes de cerrar.
+
+Por esto:
+- La fecha del gasto es `serverTimestamp()` — automática, no editable
+- El cierre es **por jornada**: los gastos cargados en esa sesión son
+  exactamente los que entran en ese cierre, sin lógica de rangos de fechas
+- Las categorías de gastos son gestionables por el cliente desde la consola
+  de Firebase (`categorias_gastos`) — si surge una categoría nueva como
+  "Banda en vivo", el cliente la agrega él mismo sin intervención del
+  desarrollador
+- El desglose por categoría se guarda como snapshot en `gastosDetalle`
+  dentro del cierre — permite la comparativa histórica semana a semana,
+  que es uno de los datos más valiosos del Excel actual
+
+### Módulo Cierre de Caja — flujo de dos pasos
+
+El operador ejecuta un flujo lineal de una sola intención al terminar la noche:
+
+**Paso 1 — Carga de gastos**
+- Lista editable en memoria (`useState` local, nada se escribe aún)
+- Campos por ítem: categoría (select poblado desde `categorias_gastos`) + monto
+- Botón "Agregar" → agrega ítem a la lista local
+- Botón eliminar por ítem → lo quita de la lista local
+- Subtotal calculado en tiempo real
+- Botón "Continuar" → persiste todos los gastos con `batch write`
+  (un documento por ítem en colección `gastos`) y avanza al paso 2
+
+**Paso 2 — Resumen y cierre**
+- Ventas de la noche: `totalEfectivo` / `totalMP` / `totalGeneral`
+- Gastos cargados en paso 1: subtotal por ítem + `totalGastos`
+- Ganancia neta: `totalGeneral − totalGastos`
+- Stock restante por producto
+- Botón "Cerrar caja" → escribe un documento en `cierresDeCaja` con todo
+  pre-calculado y cierra la jornada
+
+**Por qué `batch write` en gastos y no `runTransaction`:** no hay
+validaciones cruzadas ni condiciones. Se escriben N documentos
+independientes de una vez. `runTransaction` se reserva para Comandas
+donde hay stock que validar.
+
 ---
 
 ## Comportamientos de UI pendientes
@@ -262,8 +306,7 @@ haya múltiples operaciones simultáneas.
 ## Pantallas pendientes de diseño en Figma
 
 1. Caja del Día
-2. Cierre de Caja
-3. Carga de Gastos
+2. Cierre de Caja (flujo de dos pasos: carga de gastos → resumen y cierre)
 
 ---
 
@@ -289,7 +332,7 @@ haya múltiples operaciones simultáneas.
 2. Módulo ABM de Productos
 3. Módulo de Comandas
 4. Caja del Día
-5. Cierre de Caja + Carga de Gastos
+5. Cierre de Caja (paso 1: carga de gastos → paso 2: resumen y cierre)
 6. Historial y reportes *(versión futura)*
 
 ---
