@@ -348,8 +348,12 @@ el valor del sistema frente al cliente.
 
 ## Notas de sesión
 
-- El conector de GitHub en claude.ai web no está disponible como conector
-  nativo todavía. El flujo de contexto es: pegar este README al inicio
-  de cada chat nuevo.
+- El contexto del proyecto se lee directo desde la URL raw de GitHub al inicio
+  de cada chat nuevo. Instrucción de inicio: "Leé el contexto del proyecto:
+  https://raw.githubusercontent.com/lucasluccaroni/ContextoSAO/main/README.md"
+- No se necesita adjuntar archivos ni activar el conector de Chrome — Claude
+  tiene herramienta de web fetch integrada y lee la URL directamente.
+- Al final de cada sesión, Claude genera el bloque de cambios y el desarrollador
+  lo aplica al README y hace push. Próxima sesión arranca con el contexto actualizado.
 - Cuando arranque el desarrollo, este archivo vive en el repo de código
-  como `PROYECTO.md` y Claude Code lo lee directamente.
+  como `PROYECTO.md` y Claude Code lo lee directamente desde el filesystem.
