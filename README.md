@@ -7,6 +7,7 @@ La máquina de caja corre macOS. Reemplaza un Excel artesanal.
 ## Stack tecnológico
 - **Frontend:** React + Vite
 - **Base de datos:** Firebase Firestore
+- **Autenticación:** Firebase Authentication
 - **Estilos:** TailwindCSS
 - **Plataforma:** Web, corre en el navegador (macOS, sin restricciones)
 - **Sin backend propio:** React se conecta directo a Firebase via SDK
@@ -16,6 +17,41 @@ La máquina de caja corre macOS. Reemplaza un Excel artesanal.
 2. **Comandas** (el más complejo)
 3. **Caja del Día** (pantalla separada, no integrada en Comandas)
 4. **Cierre de Caja** (incluye carga de gastos como paso previo)
+
+---
+
+## Sistema de autenticación y roles
+
+### Herramienta
+Firebase Authentication para identidad (email + password) + Firestore para roles. Sin Custom Claims — requieren Firebase Admin SDK que solo corre en servidor. Sin pantalla de registro: los usuarios los crea el desarrollador directamente desde la consola de Firebase.
+
+### Roles y permisos
+
+| Pantalla | `admin` (dueña) | `empleado` |
+|---|---|---|
+| ABM de Productos | ✅ | ✅ |
+| Comandas | ✅ | ✅ |
+| Caja del Día | ✅ | ❌ |
+| Cierre de Caja | ✅ | ❌ |
+
+### Flujo técnico del login
+1. Firebase Auth valida email + password → devuelve `user` con `uid`
+2. La app hace `getDoc(doc(db, "usuarios", uid))` → obtiene el rol
+3. El rol se guarda en `AuthContext` (contexto global de React)
+4. React Router protege rutas con un componente `<ProtectedRoute>`
+
+Rutas protegidas:
+- `/productos` y `/comandas` — requieren login (cualquier rol)
+- `/caja` y `/cierre` — requieren rol `admin`
+- `/login` — pública, redirige si ya hay sesión activa
+
+### Seguridad en Firestore (Security Rules)
+Las rutas protegidas en React son la primera capa (UI). Las Firestore Security Rules son la segunda: corren del lado de Firebase y bloquean lecturas/escrituras no autorizadas aunque el usuario acceda directamente a la base de datos desde la consola del navegador. Las colecciones `cierresDeCaja` y datos de caja se restringen a rol `admin`.
+
+### Topnav con roles
+- **Admin:** muestra Productos / Comandas / Caja / Cierre
+- **Empleado:** muestra solo Productos / Comandas
+- Lado derecho del topnav: nombre del usuario logueado + botón "Cerrar sesión" (conviven con la fecha existente)
 
 ---
 
@@ -36,6 +72,7 @@ La máquina de caja corre macOS. Reemplaza un Excel artesanal.
 | Modal — Error stock insuficiente | x=1600, y=560 |
 | Modal — Error de conexión | x=2360, y=560 |
 | Ticket — Cocina | x=3400, y=0 |
+| Login | x=4200, y=0 |
 
 > El frame original de Comandas queda como referencia hasta que se confirme
 > que la variante con historial está lista. Borrar el viejo manualmente.
@@ -44,8 +81,8 @@ La máquina de caja corre macOS. Reemplaza un Excel artesanal.
 
 Todos los frames comparten el mismo topnav horizontal de 56px de alto:
 - Izquierda: logo placeholder + "SAO Bar"
-- Centro: links de navegación — Productos / Comandas / Caja / Cierre
-- Derecha: fecha (ej. "vie 29/03")
+- Centro: links de navegación — Productos / Comandas / Caja / Cierre (condicional por rol)
+- Derecha: fecha + nombre de usuario + botón cerrar sesión
 - Link activo: texto en color primario + línea de subrayado azul debajo
 - Link inactivo: texto secundario, sin subrayado
 
@@ -53,6 +90,14 @@ Todos los frames comparten el mismo topnav horizontal de 56px de alto:
 > izquierdo (inconsistente). Se corrigió manualmente eliminando el sidebar,
 > corriendo el contenido 64px a la izquierda, y agregando el topnav
 > horizontal. Todos los frames nuevos deben usar este patrón desde el inicio.
+
+### Login — convenciones visuales
+- Sin topnav — única pantalla fuera del shell principal
+- Tarjeta centrada (360px de ancho) sobre fondo `#111111`
+- Logo placeholder: rectángulo punteado 48×48px, igual al del topnav
+- Sin link de registro ni "¿Olvidaste tu contraseña?" — sistema cerrado
+- Pie de pantalla: "¿Problemas para acceder? Contactá al administrador."
+- Estado de error: borde rojo en ambos inputs + mensaje inline debajo del campo contraseña. Borde rojo en ambos (no solo uno) porque Firebase no especifica cuál de los dos falló.
 
 ### Logo placeholder en topbar
 
@@ -143,8 +188,8 @@ negocio: al crear un producto, `stock = stockInicial` de forma automática.
   totalEfectivo: number,
   totalMP: number,
   totalGeneral: number,
-  totalGastos: number,          // suma de todos los ítems de gastosDetalle
-  gananciaNeta: number,         // totalGeneral - totalGastos
+  totalGastos: number,
+  gananciaNeta: number,
   ventasPorCategoria: {
     cerveza: number,
     trago: number,
@@ -160,13 +205,13 @@ negocio: al crear un producto, `stock = stockInicial` de forma automática.
       restante: number
     }
   ],
-  gastosDetalle: [              // snapshot de los gastos de la jornada
+  gastosDetalle: [
     {
-      categoria: string,        // ej: "Bebidas", "DJ Tortu", "Banda en vivo"
+      categoria: string,
       monto: number
     }
   ],
-  gastosIds: [string]           // IDs de los documentos en colección gastos
+  gastosIds: [string]
 }
 ```
 
@@ -174,10 +219,23 @@ negocio: al crear un producto, `stock = stockInicial` de forma automática.
 ```js
 {
   fecha: Timestamp,        // serverTimestamp() — automático, no editable
-  categoria: string,       // texto del select — gestionado en Firebase console
+  categoria: string,
   monto: number
 }
 ```
+
+### `usuarios/{uid}`
+```js
+{
+  email: string,
+  nombre: string,          // nombre para mostrar en el topnav
+  rol: string              // "admin" | "empleado"
+}
+```
+
+> El `uid` es el mismo que genera Firebase Auth al crear el usuario.
+> Los usuarios se crean desde la consola de Firebase — no existe pantalla
+> de registro en la app.
 
 ### `contadores/comandas`
 ```js
@@ -192,6 +250,12 @@ negocio: al crear un producto, `stock = stockInicial` de forma automática.
 ---
 
 ## Decisiones arquitectónicas tomadas
+
+### Autenticación y roles
+
+**Firebase Auth + Firestore para roles** (sin Custom Claims). Los Custom Claims requieren Firebase Admin SDK, que solo corre en servidor o Cloud Functions — incompatible con el stack sin backend. El rol se lee desde `usuarios/{uid}` inmediatamente después del login y se propaga vía `AuthContext`.
+
+**`<ProtectedRoute>`** en React Router intercepta rutas restringidas y redirige si el rol no es suficiente. Las Firestore Security Rules son la segunda capa independiente de la UI.
 
 ### Módulo de Comandas — flujo "Enviar comanda"
 
@@ -211,10 +275,8 @@ Se incrementa dentro de la misma transacción — garantiza unicidad aunque
 haya múltiples operaciones simultáneas.
 
 **Feedback al operador:**
-- ✅ Éxito → modal con `#42` grande, lista de ítems (cantidad + nombre),
-  botón "Imprimir" (ancho completo), link "Cerrar" debajo
-- ❌ Error → modal genérico "Error al enviar la comanda" + línea descriptiva
-  que cambia según el tipo, solo botón "Cerrar"
+- ✅ Éxito → modal con `#42` grande, lista de ítems, botón "Imprimir", link "Cerrar"
+- ❌ Error → modal genérico con línea descriptiva según tipo, solo botón "Cerrar"
 
 **Estado del panel post-envío:**
 - Éxito + Cerrar → panel se limpia, listo para nueva comanda
@@ -233,73 +295,39 @@ haya múltiples operaciones simultáneas.
 - Separado por línea divisoria + label "HISTORIAL"
 - Campos por fila: `número | total | medio de pago` — solo lectura, sin acciones
 - Las más recientes arriba
-- Un solo scroll continuo con el resto del panel
 - **Query:** `where fecha >= inicioDia, orderBy fecha desc, limit(10)`
-- Siempre se leen exactamente 10 documentos — escala a eventos grandes sin cambiar nada
-- Listener en tiempo real con `onSnapshot` — cuando se envía una comanda
-  exitosamente aparece sola al tope sin recargar
-
-> **Razonamiento de ubicación:** no es un módulo separado porque los casos
-> de uso reales (detectar error en una comanda, verificar un cobro) son poco
-> frecuentes en un bar chico. Tenerlo visible en el panel de Comandas permite
-> consultarlo sin cambiar de pantalla mientras se arma el siguiente pedido.
-> El costo en Firestore es despreciable: ~50-80 lecturas por noche, muy por
-> debajo del tier gratuito de 50.000 lecturas/día.
+- Listener en tiempo real con `onSnapshot`
 
 ### Lógica de negocio — Gastos
 
 Los gastos se cargan el mismo viernes, al momento del cierre de caja.
-No importa cuándo ocurrieron físicamente durante la semana — el operador
-los vuelca todos de una sola vez antes de cerrar.
-
-Por esto:
-- La fecha del gasto es `serverTimestamp()` — automática, no editable
-- El cierre es **por jornada**: los gastos cargados en esa sesión son
-  exactamente los que entran en ese cierre, sin lógica de rangos de fechas
-- Las categorías de gastos son gestionables por el cliente desde la consola
-  de Firebase (`categorias_gastos`) — si surge una categoría nueva como
-  "Banda en vivo", el cliente la agrega él mismo sin intervención del
-  desarrollador
-- El desglose por categoría se guarda como snapshot en `gastosDetalle`
-  dentro del cierre — permite la comparativa histórica semana a semana,
-  que es uno de los datos más valiosos del Excel actual
+La fecha del gasto es `serverTimestamp()` — automática, no editable.
+El cierre es por jornada: los gastos cargados en esa sesión son exactamente
+los que entran en ese cierre, sin lógica de rangos de fechas.
 
 ### Módulo Cierre de Caja — flujo de dos pasos
 
-El operador ejecuta un flujo lineal de una sola intención al terminar la noche:
-
 **Paso 1 — Carga de gastos**
 - Lista editable en memoria (`useState` local, nada se escribe aún)
-- Campos por ítem: categoría (select poblado desde `categorias_gastos`) + monto
-- Botón "Agregar" → agrega ítem a la lista local
-- Botón eliminar por ítem → lo quita de la lista local
-- Subtotal calculado en tiempo real
-- Botón "Continuar" → persiste todos los gastos con `batch write`
-  (un documento por ítem en colección `gastos`) y avanza al paso 2
+- Campos por ítem: categoría (select desde `categorias_gastos`) + monto
+- Botón "Continuar" → persiste todos los gastos con `batch write` y avanza
 
 **Paso 2 — Resumen y cierre**
-- Ventas de la noche: `totalEfectivo` / `totalMP` / `totalGeneral`
-- Gastos cargados en paso 1: subtotal por ítem + `totalGastos`
-- Ganancia neta: `totalGeneral − totalGastos`
-- Stock restante por producto
-- Botón "Cerrar caja" → escribe un documento en `cierresDeCaja` con todo
-  pre-calculado y cierra la jornada
+- Ventas, gastos, ganancia neta, stock restante
+- Botón "Cerrar caja" → escribe un documento en `cierresDeCaja` pre-calculado
 
-**Por qué `batch write` en gastos y no `runTransaction`:** no hay
-validaciones cruzadas ni condiciones. Se escriben N documentos
-independientes de una vez. `runTransaction` se reserva para Comandas
-donde hay stock que validar.
+**Por qué `batch write` en gastos y no `runTransaction`:** no hay validaciones
+cruzadas. `runTransaction` se reserva para Comandas donde hay stock que validar.
 
 ---
 
 ## Comportamientos de UI pendientes
 *(sin wireframe — se resuelven al codificar)*
 
-- Botones `+/−` de cantidad: `useState` local — confirmar al armar
-  arquitectura de componentes (puede no necesitar `useContext`)
+- Botones `+/−` de cantidad: `useState` local
 - Botón "Nueva comanda": limpia el panel si la comanda está a medio hacer
-- Efectivo / Mercado Pago: selección exclusiva (uno o el otro)
-- Cantidades: no negativas, no superan el stock disponible del producto
+- Efectivo / Mercado Pago: selección exclusiva
+- Cantidades: no negativas, no superan el stock disponible
 
 ---
 
@@ -329,31 +357,26 @@ donde hay stock que validar.
 *(una vez terminada la fase de diseño en Figma)*
 
 1. Setup del proyecto: Vite + React + Firebase + TailwindCSS + GitHub
-2. Módulo ABM de Productos
-3. Módulo de Comandas
-4. Caja del Día
-5. Cierre de Caja (paso 1: carga de gastos → paso 2: resumen y cierre)
-6. Historial y reportes *(versión futura)*
+2. Login + AuthContext + ProtectedRoute + Firestore Security Rules
+3. ABM de Productos
+4. Comandas
+5. Caja del Día
+6. Cierre de Caja (paso 1: carga de gastos → paso 2: resumen y cierre)
+7. Historial y reportes *(versión futura)*
 
 ---
 
 ## Volumen de negocio real (referencia del Excel)
 
-Datos extraídos del Excel original del cliente (Enero–Febrero 2026):
 - Recaudación por noche: entre $700.000 y $2.600.000 ARS
 - El viernes 21/02 fue el pico registrado: ~$2.617.000 total
 
-Útil como referencia para decisiones de escalabilidad y para contextualizar
-el valor del sistema frente al cliente.
+---
 
 ## Notas de sesión
 
-- El contexto del proyecto se lee directo desde la URL raw de GitHub al inicio
-  de cada chat nuevo. Instrucción de inicio: "Leé el contexto del proyecto:
-  https://raw.githubusercontent.com/lucasluccaroni/ContextoSAO/main/README.md"
-- No se necesita adjuntar archivos ni activar el conector de Chrome — Claude
-  tiene herramienta de web fetch integrada y lee la URL directamente.
-- Al final de cada sesión, Claude genera el bloque de cambios y el desarrollador
-  lo aplica al README y hace push. Próxima sesión arranca con el contexto actualizado.
+- El conector de GitHub en claude.ai web no está disponible como conector
+  nativo todavía. El flujo de contexto es: pegar este README al inicio
+  de cada chat nuevo.
 - Cuando arranque el desarrollo, este archivo vive en el repo de código
-  como `PROYECTO.md` y Claude Code lo lee directamente desde el filesystem.
+  como `PROYECTO.md` y Claude Code lo lee directamente.
