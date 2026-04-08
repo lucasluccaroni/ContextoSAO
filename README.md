@@ -3,6 +3,8 @@
 ## Descripción del negocio
 Bar que abre los viernes. Un solo operador maneja todo desde la caja.
 La máquina de caja corre macOS. Reemplaza un Excel artesanal.
+La jornada comienza el viernes a la noche y termina el sábado a la madrugada
+(siempre cruza la medianoche), por lo que no puede modelarse por fecha calendario.
 
 ## Stack tecnológico
 - **Frontend:** React + Vite
@@ -15,7 +17,7 @@ La máquina de caja corre macOS. Reemplaza un Excel artesanal.
 ## Módulos del sistema
 1. **ABM de Productos**
 2. **Comandas** (el más complejo)
-3. **Caja del Día** (pantalla separada, no integrada en Comandas)
+3. **Caja del Día** (pantalla separada, solo lectura, tiempo real)
 4. **Cierre de Caja** (incluye carga de gastos como paso previo)
 
 ---
@@ -73,9 +75,15 @@ Las rutas protegidas en React son la primera capa (UI). Las Firestore Security R
 | Modal — Error de conexión | x=2360, y=560 |
 | Ticket — Cocina | x=3400, y=0 |
 | Login | x=4200, y=0 |
+| Caja del Día | x=2000, y=0 (aprox) |
 
 > El frame original de Comandas queda como referencia hasta que se confirme
 > que la variante con historial está lista. Borrar el viejo manualmente.
+
+### Pantallas pendientes de diseño en Figma
+
+1. Cierre de Caja (flujo de dos pasos: carga de gastos → resumen y cierre)
+2. Pantalla de bienvenida / caja cerrada (ver sección Modelo de jornada)
 
 ### Convención visual del topnav
 
@@ -144,9 +152,39 @@ En el **modal de alta**, el valor del campo muestra el texto:
 `"= stock inicial al crear"` — comunica explícitamente la lógica de
 negocio: al crear un producto, `stock = stockInicial` de forma automática.
 
+### Layout de Caja del Día
+
+Pantalla de solo lectura y monitoreo en tiempo real. No tiene acciones
+que modifiquen datos — toda acción definitiva vive en Cierre de Caja.
+
+Estructura:
+- **Tres metric cards** en la parte superior: Efectivo (verde) / Mercado Pago (azul) /
+  Total recaudado (blanco). Cada card muestra también el conteo de comandas.
+- **Lista de últimas 10 comandas** de la jornada: número | descripción resumida |
+  pill de medio de pago | total. Solo lectura, sin acciones.
+- **Link "Ir al cierre de caja →"** al pie, discreto — solo navegación,
+  no es el botón de cierre.
+
+Query: `where jornadaId == jornadaActiva, orderBy fecha desc, limit(10)`.
+Listener en tiempo real con `onSnapshot`.
+
 ---
 
 ## Modelo de datos Firestore
+
+### `jornadas/{jornadaId}`
+```js
+{
+  fecha: Timestamp,        // momento en que se abrió la caja (serverTimestamp)
+  fechaLabel: string,      // ej: "vie 09/05" — calculado al crear, para mostrar en UI
+  estado: string           // "abierta" | "cerrada"
+}
+```
+
+> **Por qué existe esta colección:** la jornada siempre cruza la medianoche.
+> Filtrar por fecha calendario haría que las comandas de las 00:30 quedaran
+> en "otro día". La jornada explícita resuelve esto y permite escalar a
+> múltiples noches de apertura sin conflicto.
 
 ### `productos/{productoId}`
 ```js
@@ -164,6 +202,7 @@ negocio: al crear un producto, `stock = stockInicial` de forma automática.
 ### `comandas/{comandaId}`
 ```js
 {
+  jornadaId: string,       // referencia a jornadas/{jornadaId}
   numero: number,          // secuencial legible (#42, #43...)
   fecha: Timestamp,
   items: [
@@ -184,6 +223,7 @@ negocio: al crear un producto, `stock = stockInicial` de forma automática.
 ### `cierresDeCaja/{cierreId}`
 ```js
 {
+  jornadaId: string,       // referencia a jornadas/{jornadaId}
   fecha: Timestamp,
   totalEfectivo: number,
   totalMP: number,
@@ -218,6 +258,7 @@ negocio: al crear un producto, `stock = stockInicial` de forma automática.
 ### `gastos/{gastoId}`
 ```js
 {
+  jornadaId: string,       // referencia a jornadas/{jornadaId}
   fecha: Timestamp,        // serverTimestamp() — automático, no editable
   categoria: string,
   monto: number
@@ -242,6 +283,16 @@ negocio: al crear un producto, `stock = stockInicial` de forma automática.
 { ultimo: number }         // se incrementa dentro de runTransaction()
 ```
 
+### `configuracion/caja`
+```js
+{
+  pinHash: string          // SHA-256 del PIN de cierre — nunca el PIN en texto plano
+}
+```
+> SHA-256 está disponible nativamente vía `crypto.subtle.digest()` sin
+> dependencias externas. El PIN se configura una vez desde la consola de
+> Firebase cargando el hash ya calculado.
+
 ### Colecciones de solo lectura (se editan por consola Firebase, sin UI)
 - `categorias`: `{ id, nombre, label }` — categorías de productos
 - `categorias_gastos`: `{ id, nombre, label }` — categorías de gastos
@@ -257,6 +308,37 @@ negocio: al crear un producto, `stock = stockInicial` de forma automática.
 
 **`<ProtectedRoute>`** en React Router intercepta rutas restringidas y redirige si el rol no es suficiente. Las Firestore Security Rules son la segunda capa independiente de la UI.
 
+### Modelo de jornada — por qué jornada explícita y no fecha calendario
+
+El bar siempre cruza la medianoche (viernes noche → sábado madrugada).
+Filtrar comandas por `fecha >= inicioDelDía` haría que las comandas de las
+00:30 quedaran en "otro día". Se adoptó una colección `jornadas` con
+`estado: "abierta" | "cerrada"`. Todas las queries filtran por `jornadaId`
+en lugar de por fecha. Esto además permite escalar a múltiples noches de
+apertura sin conflicto entre jornadas.
+
+### Flujo de apertura y cierre de jornada
+
+**Abrir caja:** al entrar al sistema sin jornada activa, se muestra una
+pantalla de bienvenida con botón "Abrir Caja". Cualquier operador puede
+hacerlo — no requiere rol `admin`. El click crea el documento en `jornadas`
+con `estado: "abierta"` y el `jornadaId` queda disponible para toda la app
+via `AuthContext` o contexto dedicado.
+
+**Cerrar caja:** el botón vive al final del flujo de Cierre de Caja (Paso 2).
+Requiere PIN de 4 dígitos. El cliente hashea el input con SHA-256 y compara
+contra `configuracion/caja.pinHash`. Si coincide: escribe el documento en
+`cierresDeCaja` y actualiza `jornadas/{id}` a `estado: "cerrada"`.
+Costo: 1 lectura extra de Firestore, insignificante.
+d
+### Pantalla de bienvenida / caja cerrada
+
+Nuevo componente `JornadaGuard` que envuelve toda la navegación:
+- Si existe jornada con `estado: "abierta"` → acceso normal a todos los módulos
+- Si no hay jornada abierta → pantalla de bienvenida con botón "Abrir Caja"
+
+Pendiente de diseño en Figma.
+
 ### Módulo de Comandas — flujo "Enviar comanda"
 
 **Operación atómica:** `runTransaction()` de Firestore. Nunca `batch write`.
@@ -265,7 +347,7 @@ Dentro de la transacción en un solo commit:
 2. `get` de cada producto involucrado
 3. Validar `stock >= cantidad` por cada ítem
 4. `update` stock de cada producto
-5. `set` nueva comanda con `numero = ultimo + 1`
+5. `set` nueva comanda con `numero = ultimo + 1` y `jornadaId` activo
 6. `update` contador `ultimo`
 
 Si cualquier paso falla → rollback automático, ninguna escritura se aplica.
@@ -295,26 +377,29 @@ haya múltiples operaciones simultáneas.
 - Separado por línea divisoria + label "HISTORIAL"
 - Campos por fila: `número | total | medio de pago` — solo lectura, sin acciones
 - Las más recientes arriba
-- **Query:** `where fecha >= inicioDia, orderBy fecha desc, limit(10)`
+ **Query:** `where jornadaId == jornadaActiva, orderBy fecha desc, limit(10)`
 - Listener en tiempo real con `onSnapshot`
 
 ### Lógica de negocio — Gastos
 
 Los gastos se cargan el mismo viernes, al momento del cierre de caja.
 La fecha del gasto es `serverTimestamp()` — automática, no editable.
-El cierre es por jornada: los gastos cargados en esa sesión son exactamente
-los que entran en ese cierre, sin lógica de rangos de fechas.
+Los gastos llevan `jornadaId` y se filtran por él al construir el resumen
+del cierre. Las categorías se gestionan desde la consola de Firebase
+(`categorias_gastos`) sin intervención del desarrollador.
 
 ### Módulo Cierre de Caja — flujo de dos pasos
 
 **Paso 1 — Carga de gastos**
 - Lista editable en memoria (`useState` local, nada se escribe aún)
 - Campos por ítem: categoría (select desde `categorias_gastos`) + monto
-- Botón "Continuar" → persiste todos los gastos con `batch write` y avanza
+- Botón "Continuar" → persiste todos los gastos con `batch write`
+  (cada documento incluye `jornadaId`) y avanza al paso 2
 
 **Paso 2 — Resumen y cierre**
 - Ventas, gastos, ganancia neta, stock restante
-- Botón "Cerrar caja" → escribe un documento en `cierresDeCaja` pre-calculado
+- Botón "Cerrar caja" → solicita PIN → si es correcto: escribe documento
+  en `cierresDeCaja`, actualiza `jornadas/{id}` a `estado: "cerrada"`
 
 **Por qué `batch write` en gastos y no `runTransaction`:** no hay validaciones
 cruzadas. `runTransaction` se reserva para Comandas donde hay stock que validar.
@@ -328,13 +413,8 @@ cruzadas. `runTransaction` se reserva para Comandas donde hay stock que validar.
 - Botón "Nueva comanda": limpia el panel si la comanda está a medio hacer
 - Efectivo / Mercado Pago: selección exclusiva
 - Cantidades: no negativas, no superan el stock disponible
-
----
-
-## Pantallas pendientes de diseño en Figma
-
-1. Caja del Día
-2. Cierre de Caja (flujo de dos pasos: carga de gastos → resumen y cierre)
+- Modal de PIN en Cierre de Caja: input tipo `password`, SHA-256 en cliente,
+  comparación contra `configuracion/caja.pinHash`
 
 ---
 
@@ -363,6 +443,26 @@ cruzadas. `runTransaction` se reserva para Comandas donde hay stock que validar.
 5. Caja del Día
 6. Cierre de Caja (paso 1: carga de gastos → paso 2: resumen y cierre)
 7. Historial y reportes *(versión futura)*
+
+---
+
+## Estimación de consumo Firestore por noche
+
+Basado en ~60 comandas por noche (promedio real del Excel):
+
+| Operación | Lecturas | Escrituras |
+|---|---|---|
+| Comandas (runTransaction) | ~240 | ~300 |
+| Historial onSnapshot | ~600 | 0 |
+| Caja del Día onSnapshot | ~100 | 0 |
+| ABM de Productos | ~50 | ~10 |
+| Cierre de Caja | ~60 | ~7 |
+| **Total estimado** | **~1.050** | **~317** |
+
+Costo en plan Blaze: < USD 0,01 por noche. El tier gratuito (50.000 lecturas/día)
+cubre el consumo con ~98% de margen. Se recomienda plan Blaze con tarjeta
+igualmente — no por costo sino para evitar el límite de 1GB de almacenamiento
+del plan Spark y habilitar todas las funcionalidades.
 
 ---
 
