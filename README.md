@@ -19,6 +19,7 @@ La jornada comienza el viernes a la noche y termina el sábado a la madrugada
 2. **Comandas** (el más complejo)
 3. **Caja del Día** (pantalla separada, solo lectura, tiempo real)
 4. **Cierre de Caja** (incluye carga de gastos como paso previo)
+5. **Historial y reportes** (solo rol admin, solo lectura — ver alcance en Decisiones arquitectónicas)
 
 ---
 
@@ -35,6 +36,7 @@ Firebase Authentication para identidad (email + password) + Firestore para roles
 | Comandas | ✅ | ✅ |
 | Caja del Día | ✅ | ❌ |
 | Cierre de Caja | ✅ | ❌ |
+| Historial | ✅ | ❌ |
 
 ### Flujo técnico del login
 1. Firebase Auth valida email + password → devuelve `user` con `uid`
@@ -44,14 +46,14 @@ Firebase Authentication para identidad (email + password) + Firestore para roles
 
 Rutas protegidas:
 - `/productos` y `/comandas` — requieren login (cualquier rol)
-- `/caja` y `/cierre` — requieren rol `admin`
+- `/caja`, `/cierre` e `/historial` — requieren rol `admin`
 - `/login` — pública, redirige si ya hay sesión activa
 
 ### Seguridad en Firestore (Security Rules)
 Las rutas protegidas en React son la primera capa (UI). Las Firestore Security Rules son la segunda: corren del lado de Firebase y bloquean lecturas/escrituras no autorizadas aunque el usuario acceda directamente a la base de datos desde la consola del navegador. Las colecciones `cierresDeCaja` y datos de caja se restringen a rol `admin`.
 
 ### Topnav con roles
-- **Admin:** muestra Productos / Comandas / Caja / Cierre
+- **Admin:** muestra Productos / Comandas / Caja / Cierre / Historial
 - **Empleado:** muestra solo Productos / Comandas
 - Lado derecho del topnav: nombre del usuario logueado + botón "Cerrar sesión" (conviven con la fecha existente)
 
@@ -76,14 +78,20 @@ Las rutas protegidas en React son la primera capa (UI). Las Firestore Security R
 | Ticket — Cocina | x=3400, y=0 |
 | Login | x=4200, y=0 |
 | Caja del Día | x=2000, y=0 (aprox) |
+| Cierre — 01 Inicio | x=5156, y=0 |
+| Cierre — 02 Modal PIN (normal) | x=5156, y=1043 |
+| Cierre — 03 Modal PIN (error) | x=6669, y=1043 |
+| Cierre — 04 Paso 1 Gastos (vacío) | x=7400, y=0 |
+| Cierre — 05 Paso 1 Gastos (con datos) | x=7400, y=1043 |
+| Cierre — 06 Paso 2 Resumen y cierre | x=7400, y=2086 |
+| Cierre — 07 Cierre exitoso | x=7400, y=3400 |
 
 > El frame original de Comandas queda como referencia hasta que se confirme
 > que la variante con historial está lista. Borrar el viejo manualmente.
 
 ### Pantallas pendientes de diseño en Figma
 
-1. Cierre de Caja (flujo de dos pasos: carga de gastos → resumen y cierre)
-2. Pantalla de bienvenida / caja cerrada (ver sección Modelo de jornada)
+1. Pantalla de bienvenida / caja cerrada (ver sección Modelo de jornada)
 
 ### Convención visual del topnav
 
@@ -292,6 +300,9 @@ Listener en tiempo real con `onSnapshot`.
 > SHA-256 está disponible nativamente vía `crypto.subtle.digest()` sin
 > dependencias externas. El PIN se configura una vez desde la consola de
 > Firebase cargando el hash ya calculado.
+> > Solo legible por rol `admin` (Firestore Security Rules).
+> El PIN se hashea en el cliente con `crypto.subtle` antes de comparar.
+> Nunca se almacena ni se compara en texto plano.
 
 ### Colecciones de solo lectura (se editan por consola Firebase, sin UI)
 - `categorias`: `{ id, nombre, label }` — categorías de productos
@@ -393,17 +404,58 @@ del cierre. Las categorías se gestionan desde la consola de Firebase
 **Paso 1 — Carga de gastos**
 - Lista editable en memoria (`useState` local, nada se escribe aún)
 - Campos por ítem: categoría (select desde `categorias_gastos`) + monto
-- Botón "Continuar" → persiste todos los gastos con `batch write`
-  (cada documento incluye `jornadaId`) y avanza al paso 2
+- Sin campo de descripción libre — la categoría es la descripción
+- Si no hay gastos, se puede continuar directamente (total gastos = $0)
+- Botón "Continuar" no persiste nada — los gastos siguen en memoria
 
 **Paso 2 — Resumen y cierre**
 - Ventas, gastos, ganancia neta, stock restante
 - Botón "Cerrar caja" → solicita PIN → si es correcto: escribe documento
   en `cierresDeCaja`, actualiza `jornadas/{id}` a `estado: "cerrada"`
+  
+**Paso 2 — Resumen y cierre**
+- Ventas por medio de pago, desglose de gastos, ganancia neta, stock final
+- Stock final: solo productos con al menos 1 unidad vendida (`vendidas >= 1`)
+- Scroll de página completa — sin scroll interno en cards
+- Botón "← Volver" regresa al Paso 1 sin pérdida de datos (todo sigue en memoria)
+- Botón "Confirmar cierre" → escribe en un único `batch write`:
+  1. Todos los documentos `gastos/{gastoId}`
+  2. El documento `cierresDeCaja/{cierreId}` con los totales pre-calculados
 
-**Por qué `batch write` en gastos y no `runTransaction`:** no hay validaciones
+**Por qué todo se escribe al confirmar y no al hacer "Continuar":** evita
+documentos huérfanos en Firestore si se abandona el flujo entre pasos.
+
+**Por qué `batch write` y no `runTransaction`:** no hay validaciones
 cruzadas. `runTransaction` se reserva para Comandas donde hay stock que validar.
 
+**PIN de seguridad:**
+- Vive en `configuracion/app` como campo `pinCierre` (hash SHA-256)
+- Se pide siempre al presionar "Cerrar caja", sin excepción
+- Estado de error: borde rojo en input + mensaje inline, input se limpia, botón vuelve a deshabilitarse
+- La función de hashing usa `crypto.subtle` nativo del navegador:
+```js
+async function hashPin(pin) {
+  const encoded = new TextEncoder().encode(pin);
+  const buffer = await crypto.subtle.digest("SHA-256", encoded);
+  const hashArray = Array.from(new Uint8Array(buffer));
+  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+}
+```
+
+**Pantalla de cierre exitoso:**
+- Resumen compacto: ventas por medio de pago, desglose de gastos, ganancia neta
+- Botón "Imprimir / Guardar PDF" → `window.print()` con `@media print`
+- En macOS el diálogo del sistema ofrece "Guardar como PDF" nativo, sin librería adicional
+- Botón "Volver al inicio" → regresa a la pantalla de Cierre (estado inicial)
+
+### Módulo Historial y reportes
+
+**Alcance definido (pendiente de diseño y desarrollo):**
+- Lista de cierres anteriores: una fila por viernes con fecha, total recaudado y ganancia neta
+- Al clickear un cierre: detalle completo — ventas por medio de pago, desglose de gastos, stock final con vendidas y restante por producto
+- Sin queries adicionales — todo viene de `cierresDeCaja` que ya existe
+- Acceso: solo rol `admin`, ruta `/historial`
+- "Historial" se agrega al topnav del admin junto a los otros links
 ---
 
 ## Comportamientos de UI pendientes
@@ -415,6 +467,12 @@ cruzadas. `runTransaction` se reserva para Comandas donde hay stock que validar.
 - Cantidades: no negativas, no superan el stock disponible
 - Modal de PIN en Cierre de Caja: input tipo `password`, SHA-256 en cliente,
   comparación contra `configuracion/caja.pinHash`
+
+---
+
+## Pantallas pendientes de diseño en Figma
+
+1. Historial y reportes (lista de cierres + detalle de cierre)
 
 ---
 
@@ -442,7 +500,7 @@ cruzadas. `runTransaction` se reserva para Comandas donde hay stock que validar.
 4. Comandas
 5. Caja del Día
 6. Cierre de Caja (paso 1: carga de gastos → paso 2: resumen y cierre)
-7. Historial y reportes *(versión futura)*
+7. Historial y reportes (lista de cierres + detalle por noche)
 
 ---
 
