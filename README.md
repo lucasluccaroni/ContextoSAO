@@ -294,7 +294,7 @@ Listener en tiempo real con `onSnapshot`.
 ### `configuracion/caja`
 ```js
 {
-  pinHash: string          // SHA-256 del PIN de cierre — nunca el PIN en texto plano
+  pinCierre: string          // SHA-256 del PIN de cierre — nunca el PIN en texto plano
 }
 ```
 > SHA-256 está disponible nativamente vía `crypto.subtle.digest()` sin
@@ -338,7 +338,7 @@ via `AuthContext` o contexto dedicado.
 
 **Cerrar caja:** el botón vive al final del flujo de Cierre de Caja (Paso 2).
 Requiere PIN de 4 dígitos. El cliente hashea el input con SHA-256 y compara
-contra `configuracion/caja.pinHash`. Si coincide: escribe el documento en
+contra `configuracion/caja.pinCierre`. Si coincide: escribe el documento en
 `cierresDeCaja` y actualiza `jornadas/{id}` a `estado: "cerrada"`.
 Costo: 1 lectura extra de Firestore, insignificante.
 d
@@ -409,18 +409,14 @@ del cierre. Las categorías se gestionan desde la consola de Firebase
 - Botón "Continuar" no persiste nada — los gastos siguen en memoria
 
 **Paso 2 — Resumen y cierre**
-- Ventas, gastos, ganancia neta, stock restante
-- Botón "Cerrar caja" → solicita PIN → si es correcto: escribe documento
-  en `cierresDeCaja`, actualiza `jornadas/{id}` a `estado: "cerrada"`
-  
-**Paso 2 — Resumen y cierre**
 - Ventas por medio de pago, desglose de gastos, ganancia neta, stock final
 - Stock final: solo productos con al menos 1 unidad vendida (`vendidas >= 1`)
 - Scroll de página completa — sin scroll interno en cards
 - Botón "← Volver" regresa al Paso 1 sin pérdida de datos (todo sigue en memoria)
-- Botón "Confirmar cierre" → escribe en un único `batch write`:
-  1. Todos los documentos `gastos/{gastoId}`
-  2. El documento `cierresDeCaja/{cierreId}` con los totales pre-calculados
+- Botón "Confirmar cierre" → solicita PIN → si es correcto, escribe en un único `batch write`:
+  1. Todos los documentos `gastos/{gastoId}` con su `jornadaId`
+  2. El documento `cierresDeCaja/{cierreId}` con los totales pre-calculados y su `jornadaId`
+  3. Actualiza `jornadas/{jornadaId}` a `estado: "cerrada"`
 
 **Por qué todo se escribe al confirmar y no al hacer "Continuar":** evita
 documentos huérfanos en Firestore si se abandona el flujo entre pasos.
@@ -446,7 +442,7 @@ async function hashPin(pin) {
 - Resumen compacto: ventas por medio de pago, desglose de gastos, ganancia neta
 - Botón "Imprimir / Guardar PDF" → `window.print()` con `@media print`
 - En macOS el diálogo del sistema ofrece "Guardar como PDF" nativo, sin librería adicional
-- Botón "Volver al inicio" → regresa a la pantalla de Cierre (estado inicial)
+- Botón "Volver al inicio" → regresa a la pantalla de bienvenida (jornada cerrada)
 
 ### Módulo Historial y reportes
 
@@ -466,7 +462,7 @@ async function hashPin(pin) {
 - Efectivo / Mercado Pago: selección exclusiva
 - Cantidades: no negativas, no superan el stock disponible
 - Modal de PIN en Cierre de Caja: input tipo `password`, SHA-256 en cliente,
-  comparación contra `configuracion/caja.pinHash`
+  comparación contra `configuracion/caja.pinCierre`
 
 ---
 
