@@ -86,7 +86,7 @@ Las rutas protegidas en React son la primera capa (UI). Las Firestore Security R
 | Modal — Comanda enviada | x=1600, y=0 |
 | Modal — Error stock insuficiente | x=1600, y=560 |
 | Modal — Error de conexión | x=2360, y=560 |
-| Ticket — Cocina | x=3400, y=0 |
+| Ticket — Cocina con beeper | x=3400, y=0 |
 | Login | x=4200, y=0 |
 | Caja del Día | x=2000, y=0 (aprox) |
 | Cierre — 01 Inicio | x=5156, y=0 |
@@ -344,6 +344,7 @@ garantizan que cada componente sea idéntico en todos los frames.
 {
   jornadaId: string,       // referencia a jornadas/{jornadaId}
   numero: number,          // secuencial legible (#42, #43...)
+  nroBeeper: number | null // numero de beeper (null si no requiere)
   fecha: Timestamp,
   items: [
     {
@@ -501,7 +502,7 @@ haya múltiples operaciones simultáneas.
 
 **Impresión (ticket de cocina):**
 - Formato papel térmico 80mm (área imprimible ~280px en Figma)
-- Contenido: `SAO BAR` — fecha — hora — `#42` grande — ítems (nombre + cantidad)
+- Contenido: `SAO BAR` — fecha — hora — `#42` grande — nro beeper - ítems (nombre + cantidad)
 - Implementación: `window.print()` con `@media print`. Sin ESC/POS.
 - ⚠️ Cliente posiblemente tiene ticketera térmica. Modelo desconocido, en averiguación. Diseño actual en 80mm estándar, ajustar si hace falta.
 
