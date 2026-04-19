@@ -82,7 +82,7 @@ Las rutas protegidas en React son la primera capa (UI). Las Firestore Security R
 |---|---|
 | ABM de Productos | x=0, y=0 |
 | Comandas (original, referencia) | x=0, y=0 (aprox) |
-| Comandas (variante actualizada con historial) | x=160, y=1000 |
+| Comandas con historial y beeper | x=160, y=1000 |
 | Modal — Comanda enviada | x=1600, y=0 |
 | Modal — Error stock insuficiente | x=1600, y=560 |
 | Modal — Error de conexión | x=2360, y=560 |
