@@ -95,7 +95,8 @@ Las rutas protegidas en React son la primera capa (UI). Las Firestore Security R
 | Cierre — 05 Paso 1 Gastos (con datos) | x=7400, y=1043 |
 | Cierre — 06 Paso 2 Resumen y cierre | x=7400, y=2086 |
 | Cierre — 07 Cierre exitoso | x=7400, y=3400 |
-| UI Kit | página separada "UI Kit" dentro del mismo archivo |
+| Comandas — con Beeper (rediseño) | x=10000, y=0 |
+| UI Kit v2 | x=0, y=2000 |
 
 > El frame original de Comandas queda como referencia hasta que se confirme
 > que la variante con historial está lista. Borrar el viejo manualmente.
@@ -103,9 +104,6 @@ Las rutas protegidas en React son la primera capa (UI). Las Firestore Security R
 ### Pantallas pendientes de diseño en Figma
 1. Historial y reportes (lista de cierres + detalle de cierre)
 2. Pantalla de bienvenida / caja cerrada (JornadaGuard)
-
-### Convención visual del topnav
-
 
 ### Login — convenciones visuales
 - Sin topnav — única pantalla fuera del shell principal
@@ -160,9 +158,8 @@ Listener en tiempo real con `onSnapshot`.
 ## UI Kit
 
 Página "UI Kit" creada dentro del archivo Figma `YyrxEN0RhwdqKY05xdeZ5U`.
-Generada via Figma Scripter. **Versión actual: inicial — pendiente de
-perfeccionar antes de dar por cerrada. El cliente aún no confirmó el estilo
-definitivo.**
+Generada via Figma Scripter. **Versión actual: v2 — basada en el wireframe
+de Comandas (con Beeper) como frame de referencia.**
 
 ### Tipografías definidas
 
@@ -173,46 +170,21 @@ definitivo.**
 
 Ambas se cargan via `@import` de Google Fonts. No dependen de instalación local — funcionan en cualquier OS y navegador.
 
-### Paleta de colores definida
-
-**Colores de marca (del brandbook SAO):**
-| Nombre | Hex |
-|---|---|
-| Negro | `#080A0D` |
-| Cyan | `#30CFF2` |
-| Naranja | `#F26A1B` |
-| Naranja alt | `#F25922` |
-| Blanco hueso | `#F2F2F2` |
-
-**Colores funcionales de la UI:**
-| Nombre | Hex |
-|---|---|
-| Efectivo | `#1D9E75` |
-| Mercado Pago | `#378ADD` |
-| Error / Peligro | `#E2484A` |
-| Advertencia | `#BA7517` |
-
-**Colores de superficie (dark mode):**
-| Nombre | Hex |
-|---|---|
-| Fondo principal | `#111111` |
-| Surface (cards) | `#1a1a1a` |
-| Surface 2 (panel derecho) | `#161616` |
-| Border | `#2a2a2a` |
-| Text primario | `#F2F2F2` |
-| Text muted | `#888780` |
+### Paleta de colores
+Ver sección `## Convenciones visuales` para la paleta definitiva.
 
 ### Componentes documentados en el UI Kit
-- Swatches de colores de marca y funcionales
-- Escala tipográfica (Creepster display + Livvic UI en 4 tamaños)
-- Botones: primary (naranja), secondary (borde naranja), ghost (gris), danger (rojo), sm
-- Badges de categoría: Cerveza / Trago / Sin alcohol / Comida
-- Badges de medio de pago: Efectivo / Mercado Pago
-- Estados de stock: Disponible (verde) / Stock bajo (amarillo) / Sin stock (rojo)
-- Inputs de texto y select
-- Tarjeta de producto (normal / stock bajo / agotado)
-- Selector de medio de pago (toggle)
-- Métricas de caja (Efectivo / Mercado Pago / Total)
+- Swatches de colores de marca, funcionales y badges de categoría
+- Escala tipográfica (Creepster display + Livvic UI en todos sus tamaños)
+- Topnav completo con todos sus elementos
+- Barra de título de pantalla (56px, fondo `#080A0D`)
+- Botones: todos los estados con nota de uso
+- Badges de categoría (los 4 con hex exactos)
+- Estados de stock: disponible / stock bajo / sin stock
+- Cards de producto (3 estados)
+- Inputs: normal, placeholder, solo lectura
+- Selector de medio de pago
+- Métricas de caja
 
 ---
 
@@ -237,18 +209,18 @@ verdad para todos los scripts:
 ```javascript
 const T = {
   // Colores
-  bg:        "#111111",
-  surface:   "#1a1a1a",
-  surface2:  "#161616",
-  border:    "#2a2a2a",
+  bg:        "#080A0D",
+  surface:   "#1A1A1A",
+  surface2:  "#2E2E2E",
+  border:    "#2E2E2E",
   textPrim:  "#F2F2F2",
-  textMuted: "#888780",
+  textMuted: "#9D9D9D",
   naranja:   "#F26A1B",
   cyan:      "#30CFF2",
   verde:     "#1D9E75",
   azul:      "#378ADD",
   rojo:      "#E2484A",
-  amarillo:  "#BA7517",
+  amber:     "#BA7517",
 
   // Tipografía
   fontDisplay: "Creepster",
@@ -262,19 +234,21 @@ const T = {
 
   // Layout
   topnavH:   56,
+  titleBarH: 56,
   padPage:   24,
   padCard:   16,
-  cardR:     12,
+  cardR:     8,
   btnR:      8,
   btnH:      44,
-  btnHSm:    36,
-  gap:       12,
+  btnHSm:    40,
+  gap:       10,
 };
 ```
 
 Junto con helpers reutilizables: `addBtn(variant)`, `addTopnav(activeLink, userName)`,
-`addCard(x, y, w, h)`, `addBadge(label, categoria)`, `addDot(color)` — que
-garantizan que cada componente sea idéntico en todos los frames.
+`addTitleBar(label)`, `addCard(x, y, w, h)`, `addBadge(label, categoria)`,
+`addDot(color)` — que garantizan que cada componente sea idéntico en todos
+los frames.
 
 ### Plan de ejecución
 
@@ -286,6 +260,99 @@ garantizan que cada componente sea idéntico en todos los frames.
 
 > Hasta que el cliente confirme: no re-scriptear nada. Los frames actuales
 > quedan como referencia visual para la presentación.
+
+---
+
+## Convenciones visuales
+
+> Basadas en el wireframe "Comandas — con Beeper" (x=10000, y=0) —
+> frame de referencia para todas las pantallas del sistema.
+
+### Estructura global de pantallas
+
+Todas las pantallas siguen esta estructura:
+- **Topnav** — 56px de alto, fondo `#080A0D`, trazo `#F2F2F2`
+- **Barra de título** — 56px de alto, fondo `#080A0D`, trazo `#F2F2F2`, título en Livvic Medium 22 `#F2F2F2`
+- **Paneles de contenido** — fondo `#F26A1B`, trazo `#F2F2F2` en todos los contenedores grandes para marcar límites
+
+### Topnav
+
+- Logo: PNG del cliente (28×28px)
+- "SAO Bar": Creepster Regular 14 `#30CFF2`
+- Links inactivos: Livvic Medium 14 `#F2F2F2`
+- Link activo: Livvic Medium 14 `#30CFF2` + subrayado `#30CFF2` 2px
+- Fecha y usuario: Livvic Medium 12 `#F2F2F2`
+- Botón "Salir": fondo `#2E2E2E`, Livvic Regular 12 `#9D9D9D`, hover `#E2484A`
+
+### Tipografía
+
+| Uso | Familia | Estilo | Tamaño |
+|---|---|---|---|
+| Logotipo "SAO Bar" | Creepster | Regular | 14px |
+| Título de pantalla | Livvic | Medium | 22px |
+| Subtítulo | Livvic | Medium | 18px |
+| Navegación / botones primarios | Livvic | Medium | 14px |
+| Cuerpo / botones secundarios | Livvic | Regular | 13px |
+| Labels de sección | Livvic | Regular | 12px |
+| Hints / anotaciones | Livvic | Regular | 11px |
+
+### Colores — Marca
+
+| Nombre | Hex |
+|---|---|
+| Negro | `#080A0D` |
+| Naranja | `#F26A1B` |
+| Naranja alt | `#F25922` |
+| Cyan | `#30CFF2` |
+| Blanco | `#F2F2F2` |
+
+### Colores — Funcionales
+
+| Nombre | Hex |
+|---|---|
+| Efectivo | `#1D9E75` |
+| Mercado Pago | `#378ADD` |
+| Error / Peligro | `#E2484A` |
+| Advertencia | `#BA7517` |
+| Gris UI | `#9D9D9D` |
+
+### Colores — Badges de categoría
+
+| Categoría | Fondo | Fuente |
+|---|---|---|
+| cerveza | `#2A1F0A` | `#E6A830` |
+| trago | `#1A1F3A` | `#7B9CF6` |
+| sin alcohol | `#0E2A1A` | `#4DB87A` |
+| comida | `#2A1A1A` | `#D97C7C` |
+
+### Botones
+
+| Botón | Fondo | Fuente | Peso |
+|---|---|---|---|
+| Acción primaria (Enviar comanda) | `#F2F2F2` | `#080A0D` | Bold 14 |
+| Guardar cambios | `#30CFF2` | `#080A0D` | Bold 14 |
+| Efectivo | `#1D9E75` | `#F2F2F2` | Regular 13 |
+| Mercado Pago | `#378ADD` | `#F2F2F2` | Regular 13 |
+| Secundario (+ Nueva comanda) | `#080A0D` | `#F2F2F2` | Regular 13 |
+| Cancelar | `#1A1A1A` | `#9D9D9D` | Regular 13 |
+| Destructivo (Cerrar caja) | `#E2484A` | `#F2F2F2` | Bold 14 |
+| Salir | `#2E2E2E` | `#9D9D9D` | Regular 12 |
+
+### Cards de producto
+
+| Estado | Fondo | Dot | Stock text |
+|---|---|---|---|
+| Disponible (> 5 u.) | `#1A1A1A` | `#1D9E75` | `#9D9D9D` |
+| Stock bajo (≤ 5 u.) | `#1A1A1A` | `#BA7517` | `#BA7517` |
+| Sin stock | `#1A1A1A` op. 80% | `#E2484A` | badge `#E2484A` |
+
+### Inputs
+
+| Estado | Fondo | Texto |
+|---|---|---|
+| Normal | `#1A1A1A` | `#F2F2F2` |
+| Placeholder | `#1A1A1A` | `#9D9D9D` |
+| Solo lectura | `#141414` | `#9D9D9D` |
 
 ---
 
@@ -323,7 +390,7 @@ garantizan que cada componente sea idéntico en todos los frames.
 {
   jornadaId: string,       // referencia a jornadas/{jornadaId}
   numero: number,          // secuencial legible (#42, #43...)
-  nroBeeper: number | null // numero de beeper (null si no requiere)
+  nroBeeper: number | null, // número de beeper entregado al cliente — null si no se usa
   fecha: Timestamp,
   items: [
     {
@@ -481,14 +548,14 @@ haya múltiples operaciones simultáneas.
 
 **Impresión (ticket de cocina):**
 - Formato papel térmico 80mm (área imprimible ~280px en Figma)
-- Contenido: `SAO BAR` — fecha — hora — `#42` grande — nro beeper - ítems (nombre + cantidad)
+- Contenido: `SAO BAR` — fecha — hora — `#42` grande — nro beeper — ítems (nombre + cantidad)
 - Implementación: `window.print()` con `@media print`. Sin ESC/POS.
 - ⚠️ Cliente posiblemente tiene ticketera térmica. Modelo desconocido, en averiguación. Diseño actual en 80mm estándar, ajustar si hace falta.
 
 ### Historial de comandas en panel derecho
 - Vive debajo del botón "+ Nueva comanda"
 - Separado por línea divisoria + label "HISTORIAL"
-- Campos por fila: `número | total | medio de pago` — solo lectura, sin acciones
+- Campos por fila: `número | total | medio de pago | 🔔 beeper` — solo lectura, sin acciones
 - Las más recientes arriba
 - **Query:** `where jornadaId == jornadaActiva, orderBy fecha desc, limit(10)`
 - Listener en tiempo real con `onSnapshot`
@@ -525,7 +592,7 @@ documentos huérfanos en Firestore si se abandona el flujo entre pasos.
 cruzadas. `runTransaction` se reserva para Comandas donde hay stock que validar.
 
 **PIN de seguridad:**
-- Vive en `configuracion/app` como campo `pinCierre` (hash SHA-256)
+- Vive en `configuracion/caja` como campo `pinCierre` (hash SHA-256)
 - Se pide siempre al presionar "Cerrar caja", sin excepción
 - Estado de error: borde rojo en input + mensaje inline, input se limpia, botón vuelve a deshabilitarse
 - La función de hashing usa `crypto.subtle` nativo del navegador:
