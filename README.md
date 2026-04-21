@@ -66,8 +66,7 @@ Las rutas protegidas en React son la primera capa (UI). Las Firestore Security R
 ## Estado del diseño en Figma
 
 - **Archivo:** `YyrxEN0RhwdqKY05xdeZ5U` ("SAO Bar — Wireframes")
-- **Resolución:** 1440×900, dark mode
-- **Fuente usada en scripts actuales:** Inter (Regular, Medium, Bold)
+- **Resolución:** 1440×900
 - **Fuente definitiva (pendiente de aplicar tras confirmación del cliente):** Creepster (display) + Livvic (UI) — ver sección UI Kit
 
 > ⚠️ Los frames actuales tienen inconsistencias entre sí (tamaños de
@@ -107,17 +106,6 @@ Las rutas protegidas en React son la primera capa (UI). Las Firestore Security R
 
 ### Convención visual del topnav
 
-Todos los frames comparten el mismo topnav horizontal de 56px de alto:
-- Izquierda: logo placeholder (rectángulo punteado 28×28px, anotación "← logo .png") + "SAO Bar"
-- Centro: links de navegación — Productos / Comandas / Caja / Cierre (condicional por rol)
-- Derecha: fecha + nombre de usuario + botón "Cerrar sesión"
-- Link activo: texto en color primario + línea de subrayado naranja debajo
-- Link inactivo: texto secundario, sin subrayado
-
-> ⚠️ El frame Comandas fue creado inicialmente con un sidebar vertical
-> izquierdo (inconsistente). Se corrigió manualmente eliminando el sidebar,
-> corriendo el contenido 64px a la izquierda, y agregando el topnav
-> horizontal. Todos los frames nuevos deben usar este patrón desde el inicio.
 
 ### Login — convenciones visuales
 - Sin topnav — única pantalla fuera del shell principal
@@ -127,17 +115,9 @@ Todos los frames comparten el mismo topnav horizontal de 56px de alto:
 - Pie de pantalla: "¿Problemas para acceder? Contactá al administrador."
 - Estado de error: borde rojo en ambos inputs + mensaje inline debajo del campo contraseña. Borde rojo en ambos (no solo uno) porque Firebase no especifica cuál de los dos falló.
 
-### Logo placeholder en topbar
-El topbar incluye un rectángulo punteado de 28×28px como placeholder del
-logo del cliente. Incluye una anotación "← logo .png" visible en el diseño.
-Al implementar, se reemplaza con un `<img src={logo}>` en el componente
-del topbar. El cliente aún no entregó el PNG.
-
 ### Layout del ABM de Productos
 Patrón master-detail horizontal:
 - **Panel izquierdo (tabla):** ancho dinámico, ocupa el espacio restante
-- **Divisor:** 1px vertical, color `#2e2e2e`
-- **Panel derecho (formulario):** ancho fijo 300px, fondo ligeramente más oscuro que el panel principal
 - **Modal "Nuevo producto":** overlay centrado sobre el frame completo, independiente del panel lateral. Se abre al hacer click en "+ Nuevo producto". Contiene los mismos campos que el formulario lateral más el comportamiento de stock inicial descrito abajo.
 
 > El prototipo ON_CLICK botón → overlay está pendiente de conectar
@@ -157,7 +137,6 @@ demás pestañas) para distinguirla semánticamente.
 En el formulario (panel lateral y modal), el campo "Stock actual" tiene
 tratamiento visual diferenciado para dejar claro que es solo lectura:
 - Fondo más oscuro que los inputs editables (`#141414`)
-- Texto en color gris tenue + estilo itálica
 - Hint debajo: `"Solo lectura — se descuenta con cada comanda"`
 
 En el **modal de alta**, el valor del campo muestra el texto:
