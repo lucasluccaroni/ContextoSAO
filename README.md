@@ -131,15 +131,16 @@ La pestaña de filtro **"Inactivos (N)"** muestra el conteo dinámico entre
 paréntesis y tiene estilo visual apagado (color y borde más tenues que las
 demás pestañas) para distinguirla semánticamente.
 
-### Detalle visual del campo stock actual
-En el formulario (panel lateral y modal), el campo "Stock actual" tiene
-tratamiento visual diferenciado para dejar claro que es solo lectura:
-- Fondo más oscuro que los inputs editables (`#141414`)
-- Hint debajo: `"Solo lectura — se descuenta con cada comanda"`
+### Detalle visual de los campos de stock en el formulario
+El formulario de producto (panel lateral y modal de alta/edición) maneja tres campos de stock con comportamientos distintos:
 
-En el **modal de alta**, el valor del campo muestra el texto:
-`"= stock inicial al crear"` — comunica explícitamente la lógica de
-negocio: al crear un producto, `stock = stockInicial` de forma automática.
+- **Stock ideal** — editable. Hint: `"Cantidad objetivo para reponer cada semana"`
+- **Stock inicial** — editable solo en el formulario de edición (la dueña lo toca cuando repone mercadería). Al guardar, `stock = stockInicial` automáticamente. Hint: `"Actualizalo cuando repongas mercadería"`
+- **Stock actual** — siempre solo lectura. Fondo más oscuro (`#141414`). Hint: `"Solo lectura — se descuenta con cada comanda"`
+
+En el **modal de alta**, `stockInicial` es editable (la dueña carga el lote inicial). `stockActual` muestra el texto `"= stock inicial al crear"` — comunica que al crear, `stock = stockInicial` automáticamente. `stockIdeal` también es editable desde el alta.
+
+Al guardar cambios sobre un producto existente: si se modificó `stockInicial`, la app también escribe `stock = stockInicial`. Esto representa una reposición de mercadería declarada por la dueña. `stock` nunca se edita directamente desde la UI.
 
 ### Layout de Caja del Día
 Pantalla de solo lectura y monitoreo en tiempo real. No tiene acciones
@@ -378,8 +379,11 @@ Todas las pantallas siguen esta estructura:
   nombre: string,
   categoria: string,       // "cerveza" | "trago" | "sinAlcohol" | "comida"
   precio: number,
-  stockInicial: number,    // se carga cada viernes antes de abrir
-  stock: number,           // se decrementa con cada comanda (read-only en UI)
+  stockIdeal: number,      // meta de stock que quiere tener la dueña al abrir cada jornada — editable en ABM
+  stockInicial: number,    // stock al abrir la jornada — el cierre lo actualiza automáticamente
+                           // a stock; la dueña lo edita en ABM solo cuando repone mercadería
+  stock: number,           // stock actual — se decrementa con cada comanda (read-only en UI);
+                           // al guardar cambios en stockInicial desde el ABM, stock = stockInicial
   unidad: string,          // "unidad" | "porcion" | "litro" | "ml"
   activo: boolean
 }
@@ -427,7 +431,9 @@ Todas las pantallas siguen esta estructura:
     {
       productoId: string,
       nombreSNAP: string,
-      stockInicial: number,
+      stockIdealSNAP: number,  // snapshot del ideal al momento del cierre
+                               // (faltante se calcula en UI: stockIdealSNAP - restante)
+      stockInicial: number,    // stock con el que arrancó la jornada
       vendidas: number,
       restante: number
     }
@@ -584,6 +590,7 @@ del cierre. Las categorías se gestionan desde la consola de Firebase
   1. Todos los documentos `gastos/{gastoId}` con su `jornadaId`
   2. El documento `cierresDeCaja/{cierreId}` con los totales pre-calculados y su `jornadaId`
   3. Actualiza `jornadas/{jornadaId}` a `estado: "cerrada"`
+  4. Por cada producto: `update productos/{productoId}` → `stockInicial = stock` (deja el punto de partida listo para la próxima jornada)
 
 **Por qué todo se escribe al confirmar y no al hacer "Continuar":** evita
 documentos huérfanos en Firestore si se abandona el flujo entre pasos.
@@ -615,7 +622,7 @@ async function hashPin(pin) {
 ### Módulo Historial y reportes
 **Alcance definido (pendiente de diseño y desarrollo):**
 - Lista de cierres anteriores: una fila por viernes con fecha, total recaudado y ganancia neta
-- Al clickear un cierre: detalle completo — ventas por medio de pago, desglose de gastos, stock final con vendidas y restante por producto
+- Al clickear un cierre: detalle completo — ventas por medio de pago, desglose de gastos, stock final con vendidas, restante y faltante por producto (`faltante = stockIdealSNAP - restante`, calculado en UI)
 - Sin queries adicionales — todo viene de `cierresDeCaja` que ya existe
 - Acceso: solo rol `admin`, ruta `/historial`
 - "Historial" se agrega al topnav del admin junto a los otros links
