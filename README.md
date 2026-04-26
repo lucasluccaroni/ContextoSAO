@@ -69,17 +69,17 @@ Las rutas protegidas en React son la primera capa (UI). Las Firestore Security R
 - **Resolución:** 1440×900
 - **Fuente definitiva (pendiente de aplicar tras confirmación del cliente):** Creepster (display) + Livvic (UI) — ver sección UI Kit
 
-> ⚠️ Los frames actuales tienen inconsistencias entre sí (tamaños de
-> tipografía, posiciones, hex codes, alineación de texto en botones).
-> Son válidos como referencia visual pero NO como fuente de verdad de
-> estilos. Todos serán re-scripteados cuando el cliente confirme el estilo
-> definitivo. Ver sección "Plan de rediseño y consistencia".
+> ⚠️ El rediseño con el estilo definitivo está en progreso. **ABM Productos
+> ya fue completamente rediseñado** y es la referencia de estilos junto con
+> Comandas. Los frames originales del ABM quedan como referencia histórica.
+> Los frames restantes (Cierre de Caja, Login, etc.) serán re-scripteados
+> cuando el cliente confirme el estilo definitivo.
 
 ### Frames completados
 
 | Frame | Posición |
 |---|---|
-| ABM de Productos | x=0, y=0 |
+| ABM de Productos (original, referencia) | x=0, y=0 |
 | Comandas (original, referencia) | x=0, y=0 (aprox) |
 | Comandas con historial y beeper | x=160, y=1000 |
 | Modal — Comanda enviada | x=1600, y=0 |
@@ -97,9 +97,32 @@ Las rutas protegidas en React son la primera capa (UI). Las Firestore Security R
 | Cierre — 07 Cierre exitoso | x=7400, y=3400 |
 | Comandas — con Beeper (rediseño) | x=10000, y=0 |
 | UI Kit v2 | x=0, y=2000 |
+| **ABM Productos — Rediseño v4 (con selección)** | x=3200, y=0 |
+| **ABM Productos — Sin selección** | x=4800, y=0 |
+| **Modal — Nuevo Producto (Rediseño)** | x=4800, y=0 |
+| **Modal — Confirmar baja producto** | x=6400, y=0 |
+
+> ⚠️ Las posiciones de los frames rediseñados son aproximadas — confirmar
+> en Figma y actualizar si hay colisiones.
 
 > El frame original de Comandas queda como referencia hasta que se confirme
 > que la variante con historial está lista. Borrar el viejo manualmente.
+
+### Rediseño ABM Productos — decisiones y convenciones aplicadas
+
+El rediseño del módulo ABM Productos establece el patrón visual definitivo
+para todos los frames futuros. Decisiones tomadas en esta sesión:
+
+- **Objeto de tokens `T`** como única fuente de verdad en todos los scripts
+- **Helpers reutilizables** aplicados en todos los scripts: `addRect`, `addText`,
+  `addBtn`, `addSmallBtn`, `addBadge`, `addPill`, `addField`, `addCreepster`
+- **Botón "+ Nuevo producto":** azul `#378ADD` texto `#F2F2F2` Regular 13
+- **Botón "Guardar cambios":** fondo `#F2F2F2` texto `#080A0D` Bold 14
+- **Botón "Cancelar":** fondo `#080A0D` texto `#F2F2F2` Regular 13
+- **Botón × del modal:** fondo `#E2484A` texto `#F2F2F2` — convención clásica de cierre
+- **Labels y hints del panel derecho:** color `#080A0D` (negro) por contraste sobre fondo naranja
+- **Estado vacío del panel derecho:** texto "Seleccioná un producto para editarlo" en Livvic Italic 13 `#080A0D`
+- **Modal de confirmar baja:** card blanca `#F2F2F2`, overlay oscuro 80% opacidad, título rojo `#E2484A`, botones con estilo sistema ("Cancelar" `#080A0D`, "Confirmar baja" `#E2484A`)
 
 ### Pantallas pendientes de diseño en Figma
 1. Historial y reportes (lista de cierres + detalle de cierre)
@@ -115,7 +138,9 @@ Las rutas protegidas en React son la primera capa (UI). Las Firestore Security R
 
 ### Layout del ABM de Productos
 Patrón master-detail horizontal:
-- **Panel izquierdo (tabla):** ancho dinámico, ocupa el espacio restante
+- **Panel izquierdo (tabla):** ancho dinámico `LEFT_W = 1140px`, ocupa el espacio restante
+- **Panel derecho:** ancho fijo `RIGHT_W = 300px`
+- **Tabla:** 8 columnas — Nombre / Categoría / Precio / ST. IDEAL / ST. INICIAL / ST. ACTUAL / Estado / Acciones
 - **Modal "Nuevo producto":** overlay centrado sobre el frame completo, independiente del panel lateral. Se abre al hacer click en "+ Nuevo producto". Contiene los mismos campos que el formulario lateral más el comportamiento de stock inicial descrito abajo.
 
 > El prototipo ON_CLICK botón → overlay está pendiente de conectar
@@ -141,6 +166,9 @@ El formulario de producto (panel lateral y modal de alta/edición) maneja tres c
 En el **modal de alta**, `stockInicial` es editable (la dueña carga el lote inicial). `stockActual` muestra el texto `"= stock inicial al crear"` — comunica que al crear, `stock = stockInicial` automáticamente. `stockIdeal` también es editable desde el alta.
 
 Al guardar cambios sobre un producto existente: si se modificó `stockInicial`, la app también escribe `stock = stockInicial`. Esto representa una reposición de mercadería declarada por la dueña. `stock` nunca se edita directamente desde la UI.
+
+> Labels y hints de todos los campos del panel derecho y modales usan
+> color `#080A0D` (negro) para garantizar contraste sobre el fondo naranja `#F26A1B`.
 
 ### Layout de Caja del Día
 Pantalla de solo lectura y monitoreo en tiempo real. No tiene acciones
@@ -259,8 +287,12 @@ los frames.
 4. Se re-scriptean **todos los frames desde cero** usando solo `T` y helpers — sin valores hardcodeados
 5. Los frames viejos se borran manualmente una vez confirmados los nuevos
 
-> Hasta que el cliente confirme: no re-scriptear nada. Los frames actuales
-> quedan como referencia visual para la presentación.
+> La dueña ya confirmó el estilo definitivo. A partir de ahora se van rediseñando todas las vistas del sistema y se irán agregando a los archivos del proyecto para cada vez tener más referencias y perfeccionar las siguientes vistas.
+> ABM Productos ya completó este ciclo. Es frame de referencia
+> Comandas ya completó este ciclo. Es frame de referncia
+> Los modales de nuevo producto y baja de producto ya completaron el ciclo. Son frames de referencia
+> El login ya completó este ciclo. 
+> para validar el objeto `T` y los helpers antes de aplicarlos al resto.
 
 ---
 
@@ -330,14 +362,14 @@ Todas las pantallas siguen esta estructura:
 
 | Botón | Fondo | Fuente | Peso |
 |---|---|---|---|
-| Acción primaria (Enviar comanda) | `#F2F2F2` | `#080A0D` | Bold 14 |
-| Guardar cambios | `#30CFF2` | `#080A0D` | Bold 14 |
+| Acción primaria (Enviar comanda / Guardar cambios) | `#F2F2F2` | `#080A0D` | Bold 14 |
+| Acción azul (+ Nuevo producto) | `#378ADD` | `#F2F2F2` | Regular 13 |
 | Efectivo | `#1D9E75` | `#F2F2F2` | Regular 13 |
 | Mercado Pago | `#378ADD` | `#F2F2F2` | Regular 13 |
-| Secundario (+ Nueva comanda) | `#080A0D` | `#F2F2F2` | Regular 13 |
-| Cancelar | `#1A1A1A` | `#9D9D9D` | Regular 13 |
-| Destructivo (Cerrar caja) | `#E2484A` | `#F2F2F2` | Bold 14 |
+| Secundario (+ Nueva comanda / Cancelar) | `#080A0D` | `#F2F2F2` | Regular 13 |
+| Destructivo (Confirmar baja / Cerrar caja) | `#E2484A` | `#F2F2F2` | Bold 14 |
 | Salir | `#2E2E2E` | `#9D9D9D` | Regular 12 |
+| Cerrar modal (×) | `#E2484A` | `#F2F2F2` | Bold 13 |
 
 ### Cards de producto
 
@@ -431,9 +463,8 @@ Todas las pantallas siguen esta estructura:
     {
       productoId: string,
       nombreSNAP: string,
-      stockIdealSNAP: number,  // snapshot del ideal al momento del cierre
-                               // (faltante se calcula en UI: stockIdealSNAP - restante)
-      stockInicial: number,    // stock con el que arrancó la jornada
+      stockIdealSNAP: number,
+      stockInicial: number,
       vendidas: number,
       restante: number
     }
@@ -451,8 +482,8 @@ Todas las pantallas siguen esta estructura:
 ### `gastos/{gastoId}`
 ```js
 {
-  jornadaId: string,       // referencia a jornadas/{jornadaId}
-  fecha: Timestamp,        // serverTimestamp() — automático, no editable
+  jornadaId: string,
+  fecha: Timestamp,
   categoria: string,
   monto: number
 }
@@ -462,18 +493,14 @@ Todas las pantallas siguen esta estructura:
 ```js
 {
   email: string,
-  nombre: string,          // nombre para mostrar en el topnav
+  nombre: string,
   rol: string              // "admin" | "empleado"
 }
 ```
 
-> El `uid` es el mismo que genera Firebase Auth al crear el usuario.
-> Los usuarios se crean desde la consola de Firebase — no existe pantalla
-> de registro en la app.
-
 ### `contadores/comandas`
 ```js
-{ ultimo: number }         // se incrementa dentro de runTransaction()
+{ ultimo: number }
 ```
 
 ### `configuracion/caja`
@@ -483,169 +510,55 @@ Todas las pantallas siguen esta estructura:
 }
 ```
 
-> SHA-256 disponible nativamente vía `crypto.subtle.digest()` sin dependencias.
-> Solo legible por rol `admin` (Firestore Security Rules).
-> El PIN se hashea en el cliente antes de comparar. Nunca en texto plano.
-
 ### Colecciones de solo lectura (se editan por consola Firebase, sin UI)
-- `categorias`: `{ id, nombre, label }` — categorías de productos
-- `categorias_gastos`: `{ id, nombre, label }` — categorías de gastos
-- `unidades`: `{ id, nombre, label }` — unidades de medida de productos
+- `categorias`: `{ id, nombre, label }`
+- `categorias_gastos`: `{ id, nombre, label }`
+- `unidades`: `{ id, nombre, label }`
 
 ---
 
 ## Decisiones arquitectónicas tomadas
 
 ### Autenticación y roles
-**Firebase Auth + Firestore para roles** (sin Custom Claims). Los Custom Claims requieren Firebase Admin SDK, que solo corre en servidor o Cloud Functions — incompatible con el stack sin backend. El rol se lee desde `usuarios/{uid}` inmediatamente después del login y se propaga vía `AuthContext`.
-
-**`<ProtectedRoute>`** en React Router intercepta rutas restringidas y redirige si el rol no es suficiente. Las Firestore Security Rules son la segunda capa independiente de la UI.
+**Firebase Auth + Firestore para roles** (sin Custom Claims). El rol se lee desde `usuarios/{uid}` inmediatamente después del login y se propaga vía `AuthContext`. **`<ProtectedRoute>`** en React Router intercepta rutas restringidas. Las Firestore Security Rules son la segunda capa independiente de la UI.
 
 ### Modelo de jornada — por qué jornada explícita y no fecha calendario
-El bar siempre cruza la medianoche (viernes noche → sábado madrugada).
-Filtrar comandas por `fecha >= inicioDelDía` haría que las comandas de las
-00:30 quedaran en "otro día". Se adoptó una colección `jornadas` con
-`estado: "abierta" | "cerrada"`. Todas las queries filtran por `jornadaId`
-en lugar de por fecha. Esto además permite escalar a múltiples noches de
-apertura sin conflicto entre jornadas.
+El bar siempre cruza la medianoche (viernes noche → sábado madrugada). Se adoptó una colección `jornadas` con `estado: "abierta" | "cerrada"`. Todas las queries filtran por `jornadaId` en lugar de por fecha.
 
 ### Flujo de apertura y cierre de jornada
-**Abrir caja:** al entrar al sistema sin jornada activa, se muestra una
-pantalla de bienvenida con botón "Abrir Caja". Cualquier operador puede
-hacerlo — no requiere rol `admin`. El click crea el documento en `jornadas`
-con `estado: "abierta"` y el `jornadaId` queda disponible para toda la app
-via `AuthContext` o contexto dedicado.
+**Abrir caja:** pantalla de bienvenida con botón "Abrir Caja". Cualquier operador puede hacerlo. Crea el documento en `jornadas` con `estado: "abierta"`.
 
-**Cerrar caja:** el botón vive al final del flujo de Cierre de Caja (Paso 2).
-Requiere PIN de 4 dígitos. El cliente hashea el input con SHA-256 y compara
-contra `configuracion/caja.pinCierre`. Si coincide: escribe el documento en
-`cierresDeCaja` y actualiza `jornadas/{id}` a `estado: "cerrada"`.
+**Cerrar caja:** al final del flujo de Cierre de Caja (Paso 2). Requiere PIN SHA-256.
 
 ### Pantalla de bienvenida / caja cerrada
-Nuevo componente `JornadaGuard` que envuelve toda la navegación:
-- Si existe jornada con `estado: "abierta"` → acceso normal a todos los módulos
-- Si no hay jornada abierta → pantalla de bienvenida con botón "Abrir Caja"
-
-Pendiente de diseño en Figma.
+`JornadaGuard` envuelve toda la navegación. Sin jornada abierta → pantalla de bienvenida. Pendiente de diseño en Figma.
 
 ### Módulo de Comandas — flujo "Enviar comanda"
-**Operación atómica:** `runTransaction()` de Firestore. Nunca `batch write`.
-Dentro de la transacción en un solo commit:
-1. `get` contador (`contadores/comandas`)
-2. `get` de cada producto involucrado
-3. Validar `stock >= cantidad` por cada ítem
-4. `update` stock de cada producto
-5. `set` nueva comanda con `numero = ultimo + 1` y `jornadaId` activo
-6. `update` contador `ultimo`
-
-Si cualquier paso falla → rollback automático, ninguna escritura se aplica.
-
-**Número secuencial:** documento `contadores/comandas` con campo `ultimo`.
-Se incrementa dentro de la misma transacción — garantiza unicidad aunque
-haya múltiples operaciones simultáneas.
-
-**Feedback al operador:**
-- ✅ Éxito → modal con `#42` grande, lista de ítems, botón "Imprimir", link "Cerrar"
-- ❌ Error → modal genérico con línea descriptiva según tipo, solo botón "Cerrar"
-
-**Estado del panel post-envío:**
-- Éxito + Cerrar → panel se limpia, listo para nueva comanda
-- Error + Cerrar → panel queda intacto para que el operador corrija
-
-**Impresión (ticket de cocina):**
-- Formato papel térmico 80mm (área imprimible ~280px en Figma)
-- Contenido: `SAO BAR` — fecha — hora — `#42` grande — nro beeper — ítems (nombre + cantidad)
-- Implementación: `window.print()` con `@media print`. Sin ESC/POS.
-- ⚠️ Cliente posiblemente tiene ticketera térmica. Modelo desconocido, en averiguación. Diseño actual en 80mm estándar, ajustar si hace falta.
+`runTransaction()` atómico. Valida stock, decrementa, crea comanda, incrementa contador — todo en un solo commit o rollback.
 
 ### Historial de comandas en panel derecho
-- Vive debajo del botón "+ Nueva comanda"
-- Separado por línea divisoria + label "HISTORIAL"
-- Campos por fila: `número | total | medio de pago | 🔔 beeper` — solo lectura, sin acciones
-- Las más recientes arriba
-- **Query:** `where jornadaId == jornadaActiva, orderBy fecha desc, limit(10)`
-- Listener en tiempo real con `onSnapshot`
-
-### Lógica de negocio — Gastos
-Los gastos se cargan el mismo viernes, al momento del cierre de caja.
-La fecha del gasto es `serverTimestamp()` — automática, no editable.
-Los gastos llevan `jornadaId` y se filtran por él al construir el resumen
-del cierre. Las categorías se gestionan desde la consola de Firebase
-(`categorias_gastos`) sin intervención del desarrollador.
+Query: `where jornadaId == jornadaActiva, orderBy fecha desc, limit(10)`. Listener `onSnapshot`.
 
 ### Módulo Cierre de Caja — flujo de dos pasos
-**Paso 1 — Carga de gastos**
-- Lista editable en memoria (`useState` local, nada se escribe aún)
-- Campos por ítem: categoría (select desde `categorias_gastos`) + monto
-- Sin campo de descripción libre — la categoría es la descripción
-- Si no hay gastos, se puede continuar directamente (total gastos = $0)
-- Botón "Continuar" no persiste nada — los gastos siguen en memoria
-
-**Paso 2 — Resumen y cierre**
-- Ventas por medio de pago, desglose de gastos, ganancia neta, stock final
-- Stock final: solo productos con al menos 1 unidad vendida (`vendidas >= 1`)
-- Scroll de página completa — sin scroll interno en cards
-- Botón "← Volver" regresa al Paso 1 sin pérdida de datos (todo sigue en memoria)
-- Botón "Confirmar cierre" → solicita PIN → si es correcto, escribe en un único `batch write`:
-  1. Todos los documentos `gastos/{gastoId}` con su `jornadaId`
-  2. El documento `cierresDeCaja/{cierreId}` con los totales pre-calculados y su `jornadaId`
-  3. Actualiza `jornadas/{jornadaId}` a `estado: "cerrada"`
-  4. Por cada producto: `update productos/{productoId}` → `stockInicial = stock` (deja el punto de partida listo para la próxima jornada)
-
-**Por qué todo se escribe al confirmar y no al hacer "Continuar":** evita
-documentos huérfanos en Firestore si se abandona el flujo entre pasos.
-
-**Por qué `batch write` y no `runTransaction`:** no hay validaciones
-cruzadas. `runTransaction` se reserva para Comandas donde hay stock que validar.
-
-**PIN de seguridad:**
-- Vive en `configuracion/caja` como campo `pinCierre` (hash SHA-256)
-- Se pide siempre al presionar "Cerrar caja", sin excepción
-- Estado de error: borde rojo en input + mensaje inline, input se limpia, botón vuelve a deshabilitarse
-- La función de hashing usa `crypto.subtle` nativo del navegador:
-
-```js
-async function hashPin(pin) {
-  const encoded = new TextEncoder().encode(pin);
-  const buffer = await crypto.subtle.digest("SHA-256", encoded);
-  const hashArray = Array.from(new Uint8Array(buffer));
-  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
-}
-```
-
-**Pantalla de cierre exitoso:**
-- Resumen compacto: ventas por medio de pago, desglose de gastos, ganancia neta
-- Botón "Imprimir / Guardar PDF" → `window.print()` con `@media print`
-- En macOS el diálogo del sistema ofrece "Guardar como PDF" nativo, sin librería adicional
-- Botón "Volver al inicio" → regresa a la pantalla de bienvenida (jornada cerrada)
+Todo en memoria hasta "Confirmar cierre" — un único `batch write` escribe gastos, cierre, actualiza jornada y resetea stockInicial de productos.
 
 ### Módulo Historial y reportes
-**Alcance definido (pendiente de diseño y desarrollo):**
-- Lista de cierres anteriores: una fila por viernes con fecha, total recaudado y ganancia neta
-- Al clickear un cierre: detalle completo — ventas por medio de pago, desglose de gastos, stock final con vendidas, restante y faltante por producto (`faltante = stockIdealSNAP - restante`, calculado en UI)
-- Sin queries adicionales — todo viene de `cierresDeCaja` que ya existe
-- Acceso: solo rol `admin`, ruta `/historial`
-- "Historial" se agrega al topnav del admin junto a los otros links
+Lista de cierres + detalle por noche. Todo desde `cierresDeCaja`. Solo rol `admin`, ruta `/historial`.
 
 ---
 
 ## Comportamientos de UI pendientes
-*(sin wireframe — se resuelven al codificar)*
-
 - Botones `+/−` de cantidad: `useState` local
 - Botón "Nueva comanda": limpia el panel si la comanda está a medio hacer
 - Efectivo / Mercado Pago: selección exclusiva
 - Cantidades: no negativas, no superan el stock disponible
-- Modal de PIN en Cierre de Caja: input tipo `password`, SHA-256 en cliente, comparación contra `configuracion/caja.pinCierre`
+- Modal de PIN en Cierre de Caja: input tipo `password`, SHA-256 en cliente
 
 ---
 
 ## Pantallas pendientes de diseño en Figma
 1. Historial y reportes (lista de cierres + detalle de cierre)
 2. Pantalla de bienvenida / caja cerrada (JornadaGuard)
-
-> ⚠️ Estas pantallas se diseñarán directamente con el sistema de tokens
-> y helpers — una vez que el cliente confirme el estilo definitivo.
 
 ---
 
@@ -675,8 +588,6 @@ async function hashPin(pin) {
 
 ## Estimación de consumo Firestore por noche
 
-Basado en ~60 comandas por noche (promedio real del Excel):
-
 | Operación | Lecturas | Escrituras |
 |---|---|---|
 | Comandas (runTransaction) | ~240 | ~300 |
@@ -686,10 +597,7 @@ Basado en ~60 comandas por noche (promedio real del Excel):
 | Cierre de Caja | ~60 | ~7 |
 | **Total estimado** | **~1.050** | **~317** |
 
-Costo en plan Blaze: < USD 0,01 por noche. El tier gratuito (50.000 lecturas/día)
-cubre el consumo con ~98% de margen. Se recomienda plan Blaze con tarjeta
-igualmente — no por costo sino para evitar el límite de 1GB de almacenamiento
-del plan Spark y habilitar todas las funcionalidades.
+Costo en plan Blaze: < USD 0,01 por noche. Se recomienda plan Blaze igualmente para evitar el límite de 1GB del plan Spark.
 
 ---
 
