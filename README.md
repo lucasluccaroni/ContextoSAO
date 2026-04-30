@@ -67,46 +67,44 @@ Las rutas protegidas en React son la primera capa (UI). Las Firestore Security R
 
 - **Archivo:** `YyrxEN0RhwdqKY05xdeZ5U` ("SAO Bar — Wireframes")
 - **Resolución:** 1440×900
-- **Fuente definitiva (pendiente de aplicar tras confirmación del cliente):** Creepster (display) + Livvic (UI) — ver sección UI Kit
+- **Fuente definitiva:** Creepster (display) + Livvic (UI) — ver sección UI Kit
 
-> ⚠️ El rediseño con el estilo definitivo está en progreso. **ABM Productos
-> ya fue completamente rediseñado** y es la referencia de estilos junto con
-> Comandas. Los frames originales del ABM quedan como referencia histórica.
-> Los frames restantes (Cierre de Caja, Login, etc.) serán re-scripteados
-> cuando el cliente confirme el estilo definitivo.
+> ⚠️ El rediseño con el estilo definitivo está en progreso.
 
 ### Frames completados
 
 | Frame | Posición |
 |---|---|
-| ABM de Productos (original, referencia) | x=0, y=0 |
-| Comandas (original, referencia) | x=0, y=0 (aprox) |
-| Comandas con historial y beeper | x=160, y=1000 |
-| Modal — Comanda enviada | x=1600, y=0 |
-| Modal — Error stock insuficiente | x=1600, y=560 |
-| Modal — Error de conexión | x=2360, y=560 |
-| Ticket — Cocina con beeper | x=3400, y=0 |
-| Login | x=4200, y=0 |
-| Caja del Día | x=2000, y=0 (aprox) |
-| Cierre — 01 Inicio | x=5156, y=0 |
-| Cierre — 02 Modal PIN (normal) | x=5156, y=1043 |
-| Cierre — 03 Modal PIN (error) | x=6669, y=1043 |
-| Cierre — 04 Paso 1 Gastos (vacío) | x=7400, y=0 |
-| Cierre — 05 Paso 1 Gastos (con datos) | x=7400, y=1043 |
-| Cierre — 06 Paso 2 Resumen y cierre | x=7400, y=2086 |
-| Cierre — 07 Cierre exitoso | x=7400, y=3400 |
-| Comandas — con Beeper (rediseño) | x=10000, y=0 |
-| UI Kit v2 | x=0, y=2000 |
-| **ABM Productos — Rediseño v4 (con selección)** | x=3200, y=0 |
-| **ABM Productos — Sin selección** | x=4800, y=0 |
-| **Modal — Nuevo Producto (Rediseño)** | x=4800, y=0 |
-| **Modal — Confirmar baja producto** | x=6400, y=0 |
+| ~~ABM de Productos (original, referencia)~~ | x=0, y=0 |
+| ~~Comandas (original, referencia)~~ | x=0, y=0 (aprox) |
+| ~~Comandas con historial y beeper~~ | x=160, y=1000 |
+| ~~Modal — Comanda enviada~~ | x=1600, y=0 |
+| ~~Modal — Error stock insuficiente~~ | x=1600, y=560 |
+| ~~Modal — Error de conexión~~ | x=2360, y=560 |
+| ~~Ticket — Cocina con beeper~~ | x=3400, y=0 |
+| ~~Login~~ | x=4200, y=0 |
+| ~~Caja del Día~~ | x=2000, y=0 (aprox) |
+| Cierre — 01 Inicio | x=5156, y=0 | **PENDIENTE REDISEÑO**
+| Cierre — 02 Modal PIN (normal) | x=5156, y=1043 | **PENDIENTE REDISEÑO**
+| Cierre — 03 Modal PIN (error) | x=6669, y=1043 | **PENDIENTE REDISEÑO**
+| Cierre — 04 Paso 1 Gastos (vacío) | x=7400, y=0 | **PENDIENTE REDISEÑO**
+| Cierre — 05 Paso 1 Gastos (con datos) | x=7400, y=1043 | **PENDIENTE REDISEÑO**
+| Cierre — 06 Paso 2 Resumen y cierre | x=7400, y=2086 | **PENDIENTE REDISEÑO**
+| Cierre — 07 Cierre exitoso | x=7400, y=3400 | **PENDIENTE REDISEÑO**
+| **UI Kit v2 - Version final**
+| **Login - Version final**
+| **ABM Productos - Version final con selección**
+| **ABM Productos — Version final sin selección**
+| **Modal Nuevo Producto - Version final**
+| **Modal Confirmar baja producto - Version final**
+| **Comandas con historial y beeper - Version final**
+| **Modal — Comanda enviada - Version final**
+| **Modal — Error stock insuficiente - Version final**
+| **Modal — Error de conexión - Version final**
+| **Ticket — Cocina con beeper - Version final**
 
-> ⚠️ Las posiciones de los frames rediseñados son aproximadas — confirmar
-> en Figma y actualizar si hay colisiones.
-
-> El frame original de Comandas queda como referencia hasta que se confirme
-> que la variante con historial está lista. Borrar el viejo manualmente.
+> Cada frame completado está subido en los archivos del proyecto en Claude
+> para tener referencia y perfeccionar el rediseño manteniendo estilo y consistencia
 
 ### Rediseño ABM Productos — decisiones y convenciones aplicadas
 
